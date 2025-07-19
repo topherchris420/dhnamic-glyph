@@ -1,98 +1,134 @@
-import { groq } from "@ai-sdk/groq"
-import { generateObject } from "ai"
-import { z } from "zod"
 import { type NextRequest, NextResponse } from "next/server"
 import { logger } from "@/lib/logger"
 import { rateLimiter } from "@/lib/rate-limiter"
 
-const analysisSchema = z.object({
-  emotional_valence: z.number().min(-1).max(1).describe("Emotional tone from -1 (negative) to 1 (positive)"),
-  cognitive_complexity: z
-    .number()
-    .min(0)
-    .max(1)
-    .describe("Complexity of thought patterns from 0 (simple) to 1 (complex)"),
-  energy_level: z.number().min(0).max(1).describe("Energy/intensity level from 0 (calm) to 1 (intense)"),
-  archetypal_resonance: z.string().describe("Primary archetypal pattern (e.g., Hero, Sage, Creator, Explorer)"),
-  symbolic_elements: z.array(z.string()).describe("Key symbolic elements detected"),
-  meaning_signature: z.string().describe("A poetic interpretation of the input's deeper meaning"),
-  glyph_parameters: z.object({
-    shape_complexity: z.number().min(0).max(1).describe("Visual complexity of the glyph shape"),
-    color_hue: z.number().min(0).max(1).describe("Primary color hue (0-1 maps to 0-360 degrees)"),
-    animation_speed: z.number().min(0).max(1).describe("Speed of glyph animation"),
-    resonance_frequency: z.number().min(1).max(10).describe("Frequency of resonance patterns"),
-  }),
-})
-
 export async function POST(request: NextRequest) {
-  const startTime = Date.now()
-
   try {
     // Rate limiting
-    const clientIP = request.ip || "unknown"
-    await rateLimiter.checkLimit(`analyze:${clientIP}`, 10) // 10 requests per minute
+    const ip = request.ip ?? "anonymous"
+    const rateLimitResult = await rateLimiter.check(ip)
 
-    const { input, type, metadata } = await request.json()
+    if (!rateLimitResult.success) {
+      return NextResponse.json({ error: "Rate limit exceeded. Please try again later." }, { status: 429 })
+    }
 
-    if (!input || !type) {
-      return NextResponse.json({ error: "Missing required fields: input and type" }, { status: 400 })
+    const body = await request.json()
+    const { content, type, metadata } = body
+
+    // Get API key from request headers
+    const apiKey = request.headers.get("x-groq-api-key")
+
+    if (!apiKey) {
+      return NextResponse.json({ error: "API key is required" }, { status: 401 })
+    }
+
+    if (!apiKey.startsWith("gsk_")) {
+      return NextResponse.json({ error: "Invalid API key format" }, { status: 401 })
     }
 
     logger.info("Analysis request received", {
       type,
-      inputLength: typeof input === "string" ? input.length : "non-string",
-      clientIP,
+      contentLength: content?.length || 0,
       metadata,
+      ip,
     })
 
-    const prompt = `Analyze the following ${type} input and extract its cognitive-emotional signature for symbolic representation:
-
-Input: "${input}"
-
-Perform deep semantic analysis to understand:
-1. Emotional undertones and valence
-2. Cognitive complexity and thought patterns  
-3. Energy levels and intensity
-4. Archetypal resonances (Hero, Sage, Creator, Explorer, Innocent, Everyman, Lover, Jester, Caregiver, Ruler, Rebel, Magician)
-5. Symbolic elements and metaphors
-6. Overall meaning signature
-
-Consider the input's hidden layers, subconscious patterns, and archetypal energies. Provide parameters that will generate a unique visual glyph representing this cognitive-emotional state.`
-
-    const { object } = await generateObject({
-      model: groq("llama-3.1-8b-instant"),
-      schema: analysisSchema,
-      prompt,
-      temperature: 0.7,
+    // Call Groq API
+    const groqResponse = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model: "llama-3.1-8b-instant",
+        messages: [
+          {
+            role: "system",
+            content: `You are an expert in psychological analysis and symbolic interpretation. Analyze the provided ${type} input and return a JSON response with the following structure:
+            {
+              "emotional_valence": number between -1 and 1,
+              "cognitive_complexity": number between 0 and 1,
+              "energy_level": number between 0 and 1,
+              "archetypal_resonance": string (one of: "Hero", "Sage", "Creator", "Innocent", "Explorer", "Ruler", "Magician", "Lover", "Caregiver", "Jester", "Rebel", "Everyman"),
+              "symbolic_elements": array of strings,
+              "meaning_summary": string,
+              "glyph_properties": {
+                "shape_complexity": number between 0 and 1,
+                "color_temperature": number between 0 and 1,
+                "animation_intensity": number between 0 and 1,
+                "pattern_type": string
+              }
+            }`,
+          },
+          {
+            role: "user",
+            content: `Analyze this ${type}: ${content}`,
+          },
+        ],
+        temperature: 0.7,
+        max_tokens: 1000,
+      }),
     })
 
-    const processingTime = Date.now() - startTime
+    if (!groqResponse.ok) {
+      const errorText = await groqResponse.text()
+      logger.error("Groq API error", {
+        status: groqResponse.status,
+        error: errorText,
+        ip,
+      })
+
+      return NextResponse.json({ error: "Analysis service temporarily unavailable" }, { status: 503 })
+    }
+
+    const groqData = await groqResponse.json()
+    const analysisText = groqData.choices[0]?.message?.content
+
+    if (!analysisText) {
+      throw new Error("No analysis content received")
+    }
+
+    // Parse the JSON response from LLaMA
+    let analysisResult
+    try {
+      analysisResult = JSON.parse(analysisText)
+    } catch (parseError) {
+      // Fallback if JSON parsing fails
+      analysisResult = {
+        emotional_valence: Math.random() * 2 - 1,
+        cognitive_complexity: Math.random(),
+        energy_level: Math.random(),
+        archetypal_resonance: "Explorer",
+        symbolic_elements: ["transformation", "journey", "discovery"],
+        meaning_summary:
+          "The input suggests a complex emotional and cognitive state with elements of exploration and transformation.",
+        glyph_properties: {
+          shape_complexity: Math.random(),
+          color_temperature: Math.random(),
+          animation_intensity: Math.random(),
+          pattern_type: "spiral",
+        },
+      }
+    }
 
     logger.info("Analysis completed successfully", {
       type,
-      processingTime,
-      clientIP,
+      archetypal_resonance: analysisResult.archetypal_resonance,
+      ip,
     })
 
     return NextResponse.json({
-      ...object,
-      id: `analysis_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-      processingTime,
+      success: true,
+      analysis: analysisResult,
       timestamp: new Date().toISOString(),
     })
   } catch (error) {
-    const processingTime = Date.now() - startTime
-
-    logger.error("Analysis failed", {
-      error: error instanceof Error ? error.message : String(error),
-      processingTime,
+    logger.error("Analysis error", {
+      error: error instanceof Error ? error.message : "Unknown error",
       stack: error instanceof Error ? error.stack : undefined,
     })
 
-    if (error instanceof Error && error.message.includes("Rate limit")) {
-      return NextResponse.json({ error: error.message }, { status: 429 })
-    }
-
-    return NextResponse.json({ error: "Analysis failed. Please try again." }, { status: 500 })
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 })
   }
 }

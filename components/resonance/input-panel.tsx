@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
 import { Input } from "@/components/ui/input"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Mic, Upload, Type } from "lucide-react"
+import { Mic, Upload, Type, Lock } from "lucide-react"
 import { ProcessingIndicator } from "@/components/common/processing-indicator"
 import { useVoiceRecording } from "@/hooks/use-voice-recording"
 import { useFileUpload } from "@/hooks/use-file-upload"
@@ -17,9 +17,10 @@ interface InputPanelProps {
   onSubmit: (data: InputData) => Promise<void>
   isLoading: boolean
   error: string | null
+  disabled?: boolean
 }
 
-export function InputPanel({ onSubmit, isLoading, error }: InputPanelProps) {
+export function InputPanel({ onSubmit, isLoading, error, disabled = false }: InputPanelProps) {
   const [activeTab, setActiveTab] = useState("text")
   const [textInput, setTextInput] = useState("")
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -28,15 +29,17 @@ export function InputPanel({ onSubmit, isLoading, error }: InputPanelProps) {
   const { uploadFile, isUploading } = useFileUpload()
 
   const handleTextSubmit = useCallback(async () => {
-    if (!textInput.trim()) return
+    if (!textInput.trim() || disabled) return
     await onSubmit({
       content: textInput,
       type: "text",
       metadata: { length: textInput.length },
     })
-  }, [textInput, onSubmit])
+  }, [textInput, onSubmit, disabled])
 
   const handleVoiceRecording = useCallback(async () => {
+    if (disabled) return
+
     if (isRecording) {
       const audioData = await stopRecording()
       if (audioData) {
@@ -49,10 +52,12 @@ export function InputPanel({ onSubmit, isLoading, error }: InputPanelProps) {
     } else {
       startRecording()
     }
-  }, [isRecording, startRecording, stopRecording, onSubmit])
+  }, [isRecording, startRecording, stopRecording, onSubmit, disabled])
 
   const handleFileUpload = useCallback(
     async (event: React.ChangeEvent<HTMLInputElement>) => {
+      if (disabled) return
+
       const file = event.target.files?.[0]
       if (!file) return
 
@@ -71,22 +76,22 @@ export function InputPanel({ onSubmit, isLoading, error }: InputPanelProps) {
         console.error("File upload failed:", err)
       }
     },
-    [uploadFile, onSubmit],
+    [uploadFile, onSubmit, disabled],
   )
 
   return (
     <div className="space-y-4">
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList className="grid w-full grid-cols-3 bg-slate-700">
-          <TabsTrigger value="text" className="data-[state=active]:bg-purple-600">
+          <TabsTrigger value="text" className="data-[state=active]:bg-purple-600" disabled={disabled}>
             <Type className="w-4 h-4 mr-2" />
             Text
           </TabsTrigger>
-          <TabsTrigger value="voice" className="data-[state=active]:bg-purple-600">
+          <TabsTrigger value="voice" className="data-[state=active]:bg-purple-600" disabled={disabled}>
             <Mic className="w-4 h-4 mr-2" />
             Voice
           </TabsTrigger>
-          <TabsTrigger value="symbol" className="data-[state=active]:bg-purple-600">
+          <TabsTrigger value="symbol" className="data-[state=active]:bg-purple-600" disabled={disabled}>
             <Upload className="w-4 h-4 mr-2" />
             Symbol
           </TabsTrigger>
@@ -94,53 +99,96 @@ export function InputPanel({ onSubmit, isLoading, error }: InputPanelProps) {
 
         <TabsContent value="text" className="space-y-4">
           <Textarea
-            placeholder="Enter your thoughts, dreams, or any text to decode..."
+            placeholder={
+              disabled
+                ? "Set your API key to start analyzing..."
+                : "Enter your thoughts, dreams, or any text to decode..."
+            }
             value={textInput}
             onChange={(e) => setTextInput(e.target.value)}
             className="min-h-32 bg-slate-700 border-slate-600 text-white placeholder-slate-400"
-            disabled={isLoading}
+            disabled={isLoading || disabled}
           />
           <Button
             onClick={handleTextSubmit}
-            disabled={!textInput.trim() || isLoading}
-            className="w-full bg-purple-600 hover:bg-purple-700"
+            disabled={!textInput.trim() || isLoading || disabled}
+            className="w-full bg-purple-600 hover:bg-purple-700 disabled:opacity-50"
           >
-            Decode Text Resonance
+            {disabled ? (
+              <>
+                <Lock className="w-4 h-4 mr-2" />
+                API Key Required
+              </>
+            ) : (
+              "Decode Text Resonance"
+            )}
           </Button>
         </TabsContent>
 
         <TabsContent value="voice" className="space-y-4">
           <div className="text-center space-y-4">
-            <p className="text-slate-300">Capture voice patterns and emotional undertones</p>
+            <p className="text-slate-300">
+              {disabled
+                ? "Set your API key to enable voice analysis"
+                : "Capture voice patterns and emotional undertones"}
+            </p>
             <Button
               onClick={handleVoiceRecording}
-              disabled={isLoading}
-              className={`w-full ${isRecording ? "bg-red-600 hover:bg-red-700" : "bg-purple-600 hover:bg-purple-700"}`}
+              disabled={isLoading || disabled}
+              className={`w-full ${
+                disabled
+                  ? "bg-slate-600 cursor-not-allowed"
+                  : isRecording
+                    ? "bg-red-600 hover:bg-red-700"
+                    : "bg-purple-600 hover:bg-purple-700"
+              }`}
             >
-              <Mic className="w-4 h-4 mr-2" />
-              {isRecording ? "Stop Recording" : "Start Voice Analysis"}
+              {disabled ? (
+                <>
+                  <Lock className="w-4 h-4 mr-2" />
+                  API Key Required
+                </>
+              ) : (
+                <>
+                  <Mic className="w-4 h-4 mr-2" />
+                  {isRecording ? "Stop Recording" : "Start Voice Analysis"}
+                </>
+              )}
             </Button>
           </div>
         </TabsContent>
 
         <TabsContent value="symbol" className="space-y-4">
           <div className="text-center space-y-4">
-            <p className="text-slate-300">Upload symbols, diagrams, or images for archetypal analysis</p>
+            <p className="text-slate-300">
+              {disabled
+                ? "Set your API key to enable symbol analysis"
+                : "Upload symbols, diagrams, or images for archetypal analysis"}
+            </p>
             <Input
               type="file"
               ref={fileInputRef}
               onChange={handleFileUpload}
               accept="image/*,.txt,.pdf"
               className="hidden"
-              disabled={isLoading || isUploading}
+              disabled={isLoading || isUploading || disabled}
             />
             <Button
-              onClick={() => fileInputRef.current?.click()}
-              disabled={isLoading || isUploading}
-              className="w-full bg-purple-600 hover:bg-purple-700"
+              onClick={() => !disabled && fileInputRef.current?.click()}
+              disabled={isLoading || isUploading || disabled}
+              className="w-full bg-purple-600 hover:bg-purple-700 disabled:opacity-50"
             >
-              <Upload className="w-4 h-4 mr-2" />
-              {isUploading ? "Uploading..." : "Upload Symbol/File"}
+              {disabled ? (
+                <>
+                  <Lock className="w-4 h-4 mr-2" />
+                  API Key Required
+                </>
+              ) : (
+                <>
+                  <Upload className="w-4 h-4 mr-2" />
+                  {isUploading ? "Uploading..." : "Upload Symbol/File"}
+                </>
+              )}
             </Button>
           </div>
         </TabsContent>

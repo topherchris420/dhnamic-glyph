@@ -1,9 +1,9 @@
 "use client"
 
 import { useState, useCallback } from "react"
-import { analysisService } from "@/services/analysis-service"
+import { apiClient } from "@/lib/api-client"
 import { logger } from "@/lib/logger"
-import type { InputData, AnalysisResult } from "@/types/analysis"
+import type { AnalysisResult, InputData } from "@/types/analysis"
 
 export function useAnalysis() {
   const [isLoading, setIsLoading] = useState(false)
@@ -14,26 +14,33 @@ export function useAnalysis() {
     setError(null)
 
     try {
-      logger.info("Starting analysis", { inputType: inputData.type, contentLength: inputData.content.length })
+      // Get API key from localStorage
+      const apiKey = localStorage.getItem("groq_api_key")
 
-      const result = await analysisService.analyze(inputData)
+      if (!apiKey) {
+        throw new Error("API key not found. Please set your Groq API key.")
+      }
 
-      logger.info("Analysis completed successfully", {
-        analysisId: result.id,
-        processingTime: result.processingTime,
+      const response = await apiClient.post("/api/analyze", inputData, {
+        headers: {
+          "x-groq-api-key": apiKey,
+        },
       })
 
-      return result
+      if (!response.success) {
+        throw new Error(response.error || "Analysis failed")
+      }
+
+      logger.info("Analysis completed", {
+        type: inputData.type,
+        archetypal_resonance: response.analysis.archetypal_resonance,
+      })
+
+      return response.analysis
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : "Analysis failed"
       setError(errorMessage)
-
-      logger.error("Analysis failed", {
-        error: errorMessage,
-        inputType: inputData.type,
-        stack: err instanceof Error ? err.stack : undefined,
-      })
-
+      logger.error("Analysis error", { error: errorMessage })
       throw err
     } finally {
       setIsLoading(false)
