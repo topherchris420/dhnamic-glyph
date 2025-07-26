@@ -2,7 +2,7 @@
 
 <div align="center">
 
-![Resonance Glyph Decoder](https://img.shields.io/badge/AI%20Powered-Groq%20Integrator-purple?style=for-the-badge&logo=brain&logoColor=white)
+![Resonance Groq Integrator](https://img.shields.io/badge/AI%20Powered-Groq%20Integrator-purple?style=for-the-badge&logo=brain&logoColor=white)
 [![Next.js](https://img.shields.io/badge/Next.js-14+-black?style=for-the-badge&logo=next.js&logoColor=white)](https://nextjs.org/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.0+-blue?style=for-the-badge&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
 [![Groq](https://img.shields.io/badge/Groq-LLaMA-orange?style=for-the-badge&logo=groq&logoColor=white)](https://groq.com/)
