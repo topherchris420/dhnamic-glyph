@@ -12,7 +12,6 @@
 
 [🚀 Live Demo](https://v0-open-source-ll-a-ma-interface.vercel.app/) • [📖 Documentation](#-documentation) • [🤝 Contributing](#-contributing) • [🐛 Issues](https://github.com/topherchris420/dhnamic-glyph/issues)
 
-![Resonance Glyph Decoder Screenshot](https://images.unsplash.com/photo-1518709268805-4e9042af2176?w=800&h=400&fit=crop&crop=center)
 
 </div>
 
