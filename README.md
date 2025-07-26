@@ -10,7 +10,9 @@
 
 **Transform your thoughts into dynamic visual symbols using AI-powered archetypal analysis**
 
-[🚀 Live Demo](https://v0-open-source-ll-a-ma-interface.vercel.app/) • [📖 Documentation](#documentation) • [🤝 Contributing](#contributing) • [🐛 Issues](https://github.com/your-username/resonance-glyph-decoder/issues)
+[🚀 Live Demo](https://v0-open-source-ll-a-ma-interface.vercel.app/) • [📖 Documentation](#-documentation) • [🤝 Contributing](#-contributing) • [🐛 Issues](https://github.com/topherchris420/dhnamic-glyph/issues)
+
+![Resonance Glyph Decoder Screenshot](https://images.unsplash.com/photo-1518709268805-4e9042af2176?w=800&h=400&fit=crop&crop=center)
 
 </div>
 
@@ -62,14 +64,14 @@ Every human thought carries archetypal patterns and emotional signatures. Our de
 
 - **Node.js** 18+ 
 - **npm** or **yarn**
-- **Groq API Key** (free tier available)
+- **Groq API Key** (free tier available at [console.groq.com](https://console.groq.com))
 
 ### Installation
 
 1. **Clone the repository**
    \`\`\`bash
-   git clone https://github.com/your-username/resonance-glyph-decoder.git
-   cd resonance-glyph-decoder
+   git clone https://github.com/topherchris420/dhnamic-glyph.git
+   cd dhnamic-glyph
    \`\`\`
 
 2. **Install dependencies**
@@ -231,6 +233,8 @@ Built-in guided tours help users understand:
 ## 🚀 Deployment
 
 ### Vercel (Recommended)
+
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/topherchris420/dhnamic-glyph)
 
 1. **Connect your repository** to Vercel
 2. **Add environment variables** in the Vercel dashboard
@@ -408,7 +412,7 @@ copies or substantial portions of the Software.
 
 ## 🌟 Star History
 
-[![Star History Chart](https://api.star-history.com/svg?repos=your-username/resonance-glyph-decoder&type=Date)](https://star-history.com/#your-username/resonance-glyph-decoder&Date)
+[![Star History Chart](https://api.star-history.com/svg?repos=topherchris420/dhnamic-glyph&type=Date)](https://star-history.com/#topherchris420/dhnamic-glyph&Date)
 
 ---
 
@@ -416,6 +420,6 @@ copies or substantial portions of the Software.
 
 **Made with ❤️ by the Resonance Glyph Decoder Team**
 
-[🌐 Website](https://resonance-glyph-decoder.com) • [🐦 Twitter](https://twitter.com/resonanceglyph) • [💬 Discord](https://discord.gg/resonanceglyph) • [📧 Email](mailto:hello@resonance-glyph-decoder.com)
+[🌐 Website](https://v0-open-source-ll-a-ma-interface.vercel.app/) • [🐦 Twitter](https://twitter.com/resonanceglyph) • [💬 Discord](https://discord.gg/resonanceglyph) • [📧 Email](mailto:hello@resonance-glyph-decoder.com)
 
 </div>

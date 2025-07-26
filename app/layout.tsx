@@ -1,18 +1,36 @@
 import type React from "react"
 import type { Metadata } from "next"
-import { Inter } from "next/font/google"
+import { Inter, JetBrains_Mono } from "next/font/google"
 import "./globals.css"
-import { Toaster } from "@/components/ui/toaster"
 import { ThemeProvider } from "@/components/theme-provider"
 
-const inter = Inter({ subsets: ["latin"] })
+const inter = Inter({
+  subsets: ["latin"],
+  variable: "--font-inter",
+  display: "swap",
+})
+
+const jetbrainsMono = JetBrains_Mono({
+  subsets: ["latin"],
+  variable: "--font-mono",
+  display: "swap",
+})
 
 export const metadata: Metadata = {
-  title: "Resonance Glyph Decoder | AI-Powered Symbolic Interface",
+  title: "Resonance Glyph Decoder | Transform Thoughts into Visual Symbols",
   description:
-    "Transform thoughts, voice, and symbols into dynamic glyphs using open-source LLaMA. Your thoughts, symbolized. Your resonance, revealed.",
-  keywords: ["AI", "LLaMA", "Groq", "symbolic analysis", "glyph decoder", "emotional mapping"],
-  authors: [{ name: "Resonance Glyph Team" }],
+    "AI-powered interface that transforms natural language, voice, and symbols into dynamic glyphs representing cognitive-emotional states using open-source LLaMA.",
+  keywords: [
+    "AI",
+    "LLaMA",
+    "Groq",
+    "glyph",
+    "visualization",
+    "consciousness",
+    "archetypal analysis",
+    "emotional mapping",
+  ],
+  authors: [{ name: "Resonance Glyph Decoder Team" }],
   creator: "Resonance Glyph Decoder",
   publisher: "Resonance Glyph Decoder",
   formatDetection: {
@@ -20,31 +38,31 @@ export const metadata: Metadata = {
     address: false,
     telephone: false,
   },
-  icons: {
-    icon: [
-      { url: "/favicon-16x16.png", sizes: "16x16", type: "image/png" },
-      { url: "/favicon-32x32.png", sizes: "32x32", type: "image/png" },
-    ],
-    apple: [{ url: "/apple-touch-icon.png", sizes: "180x180", type: "image/png" }],
-    other: [
-      { url: "/android-chrome-192x192.png", sizes: "192x192", type: "image/png" },
-      { url: "/android-chrome-512x512.png", sizes: "512x512", type: "image/png" },
-    ],
+  metadataBase: new URL("https://resonance-glyph-decoder.vercel.app"),
+  alternates: {
+    canonical: "/",
   },
-  manifest: "/site.webmanifest",
   openGraph: {
-    type: "website",
-    locale: "en_US",
-    url: "https://resonance-glyph.vercel.app",
     title: "Resonance Glyph Decoder",
-    description: "AI-powered interface that transforms thoughts into dynamic symbolic glyphs",
+    description: "Transform your thoughts into dynamic visual symbols using AI-powered archetypal analysis",
+    url: "https://resonance-glyph-decoder.vercel.app",
     siteName: "Resonance Glyph Decoder",
+    images: [
+      {
+        url: "/og-image.png",
+        width: 1200,
+        height: 630,
+        alt: "Resonance Glyph Decoder - AI-powered symbolic visualization",
+      },
+    ],
+    locale: "en_US",
+    type: "website",
   },
   twitter: {
     card: "summary_large_image",
     title: "Resonance Glyph Decoder",
-    description: "Transform your thoughts into dynamic glyphs with AI",
-    creator: "@resonanceglyph",
+    description: "Transform your thoughts into dynamic visual symbols using AI-powered archetypal analysis",
+    images: ["/og-image.png"],
   },
   robots: {
     index: true,
@@ -57,28 +75,37 @@ export const metadata: Metadata = {
       "max-snippet": -1,
     },
   },
+  icons: {
+    icon: [
+      { url: "/favicon.ico", sizes: "any" },
+      { url: "/favicon-16x16.png", sizes: "16x16", type: "image/png" },
+      { url: "/favicon-32x32.png", sizes: "32x32", type: "image/png" },
+    ],
+    apple: [{ url: "/apple-touch-icon.png", sizes: "180x180", type: "image/png" }],
+    other: [{ rel: "mask-icon", url: "/safari-pinned-tab.svg", color: "#8b5cf6" }],
+  },
+  manifest: "/site.webmanifest",
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#8b5cf6" },
+    { media: "(prefers-color-scheme: dark)", color: "#8b5cf6" },
+  ],
     generator: 'v0.dev'
 }
 
 export default function RootLayout({
   children,
-}: Readonly<{
+}: {
   children: React.ReactNode
-}>) {
+}) {
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang="en" className={`${inter.variable} ${jetbrainsMono.variable}`}>
       <head>
-        <link rel="icon" href="/favicon.ico" sizes="any" />
-        <link rel="icon" href="/favicon.png" type="image/svg+xml" />
-        <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
-        <link rel="manifest" href="/site.webmanifest" />
-        <meta name="theme-color" content="#8b5cf6" />
-        <meta name="msapplication-TileColor" content="#8b5cf6" />
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
       </head>
-      <body className={inter.className}>
+      <body className={`${inter.className} antialiased`}>
         <ThemeProvider attribute="class" defaultTheme="dark" enableSystem disableTransitionOnChange>
           {children}
-          <Toaster />
         </ThemeProvider>
       </body>
     </html>

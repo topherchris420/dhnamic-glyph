@@ -1,12 +1,7 @@
 {
   "name": "Resonance Glyph Decoder",
-  "short_name": "ResonanceGlyph",
-  "description": "AI-powered interface that transforms thoughts into dynamic symbolic glyphs",
-  "start_url": "/",
-  "display": "standalone",
-  "background_color": "#0f172a",
-  "theme_color": "#8b5cf6",
-  "orientation": "portrait-primary",
+  "short_name": "RGD",
+  "description": "Transform thoughts into dynamic visual symbols using AI-powered archetypal analysis",
   "icons": [
     {
       "src": "/android-chrome-192x192.png",
@@ -19,6 +14,11 @@
       "type": "image/png"
     }
   ],
+  "theme_color": "#8b5cf6",
+  "background_color": "#0f172a",
+  "display": "standalone",
+  "start_url": "/",
+  "orientation": "portrait-primary",
   "categories": ["productivity", "utilities", "education"],
   "lang": "en",
   "dir": "ltr"

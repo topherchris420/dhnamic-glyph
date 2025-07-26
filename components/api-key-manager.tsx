@@ -1,198 +1,181 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import { motion } from "framer-motion"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog"
-import { Eye, EyeOff, Key, Settings, Shield, AlertTriangle } from "lucide-react"
-import { useToast } from "@/hooks/use-toast"
+import { Alert, AlertDescription } from "@/components/ui/alert"
+import { Badge } from "@/components/ui/badge"
+import { Eye, EyeOff, Key, Shield, CheckCircle, AlertTriangle, Trash2 } from "lucide-react"
 
-interface ApiKeyManagerProps {
-  onApiKeyChange?: (hasKey: boolean) => void
-}
-
-export function ApiKeyManager({ onApiKeyChange }: ApiKeyManagerProps) {
+export function ApiKeyManager() {
   const [apiKey, setApiKey] = useState("")
   const [showKey, setShowKey] = useState(false)
-  const [isOpen, setIsOpen] = useState(false)
-  const [hasStoredKey, setHasStoredKey] = useState(false)
-  const { toast } = useToast()
+  const [isValid, setIsValid] = useState(false)
+  const [isSaved, setIsSaved] = useState(false)
+  const [error, setError] = useState("")
 
   useEffect(() => {
-    // Check if API key exists in localStorage on component mount
-    const storedKey = localStorage.getItem("groq_api_key")
-    if (storedKey) {
-      setHasStoredKey(true)
-      setApiKey(storedKey)
-      onApiKeyChange?.(true)
+    // Load saved API key on component mount
+    const savedKey = localStorage.getItem("groq_api_key")
+    if (savedKey) {
+      setApiKey(savedKey)
+      setIsValid(validateApiKey(savedKey))
+      setIsSaved(true)
     }
-  }, [onApiKeyChange])
+  }, [])
 
-  const handleSaveApiKey = () => {
-    if (!apiKey.trim()) {
-      toast({
-        title: "Invalid API Key",
-        description: "Please enter a valid Groq API key.",
-        variant: "destructive",
-      })
-      return
-    }
+  const validateApiKey = (key: string): boolean => {
+    // Groq API keys typically start with 'gsk_' and are 56 characters long
+    return key.startsWith("gsk_") && key.length >= 50
+  }
 
-    if (!apiKey.startsWith("gsk_")) {
-      toast({
-        title: "Invalid Format",
-        description: "Groq API keys should start with 'gsk_'.",
-        variant: "destructive",
-      })
+  const handleApiKeyChange = (value: string) => {
+    setApiKey(value)
+    setError("")
+    setIsValid(validateApiKey(value))
+  }
+
+  const saveApiKey = () => {
+    if (!isValid) {
+      setError("Please enter a valid Groq API key (starts with 'gsk_')")
       return
     }
 
     try {
       localStorage.setItem("groq_api_key", apiKey)
-      setHasStoredKey(true)
-      setIsOpen(false)
-      onApiKeyChange?.(true)
-      toast({
-        title: "API Key Saved",
-        description: "Your Groq API key has been securely stored locally.",
-      })
-    } catch (error) {
-      toast({
-        title: "Storage Error",
-        description: "Failed to save API key. Please try again.",
-        variant: "destructive",
-      })
+      setIsSaved(true)
+      setError("")
+    } catch (err) {
+      setError("Failed to save API key. Please try again.")
     }
   }
 
-  const handleRemoveApiKey = () => {
+  const removeApiKey = () => {
     localStorage.removeItem("groq_api_key")
     setApiKey("")
-    setHasStoredKey(false)
-    setIsOpen(false)
-    onApiKeyChange?.(false)
-    toast({
-      title: "API Key Removed",
-      description: "Your API key has been removed from local storage.",
-    })
+    setIsSaved(false)
+    setIsValid(false)
+    setError("")
   }
 
-  const maskedKey = apiKey
-    ? `${apiKey.slice(0, 8)}${"*".repeat(Math.max(0, apiKey.length - 12))}${apiKey.slice(-4)}`
-    : ""
+  const maskApiKey = (key: string): string => {
+    if (key.length < 12) return key
+    return `${key.slice(0, 8)}${"•".repeat(key.length - 12)}${key.slice(-4)}`
+  }
 
   return (
-    <Dialog open={isOpen} onOpenChange={setIsOpen}>
-      <DialogTrigger asChild>
-        <Button variant="outline" size="sm" className="gap-2 bg-transparent">
-          <Key className="w-4 h-4" />
-          {hasStoredKey ? (
-            <>
-              <Shield className="w-4 h-4 text-green-500" />
-              API Key Set
-            </>
-          ) : (
-            <>
-              <AlertTriangle className="w-4 h-4 text-yellow-500" />
-              Set API Key
-            </>
-          )}
-        </Button>
-      </DialogTrigger>
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <Settings className="w-5 h-5" />
-            Groq API Key Management
-          </DialogTitle>
-          <DialogDescription>
-            Securely manage your Groq API key for LLaMA inference. Your key is stored locally and never transmitted to
-            our servers.
-          </DialogDescription>
-        </DialogHeader>
-
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm">API Key Configuration</CardTitle>
-            <CardDescription className="text-xs">
-              Get your free API key from{" "}
-              <a
-                href="https://console.groq.com/keys"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-purple-400 hover:text-purple-300 underline"
-              >
-                Groq Console
-              </a>
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="api-key">Groq API Key</Label>
-              <div className="relative">
-                <Input
-                  id="api-key"
-                  type={showKey ? "text" : "password"}
-                  placeholder="gsk_..."
-                  value={apiKey}
-                  onChange={(e) => setApiKey(e.target.value)}
-                  className="pr-10"
-                />
+    <div className="space-y-6">
+      <Card className="bg-slate-900/50 border-purple-500/30">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-white">
+            <Key className="w-5 h-5" />
+            Groq API Key Configuration
+          </CardTitle>
+          <CardDescription className="text-slate-300">
+            Your API key is stored locally and never transmitted to our servers
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="api-key" className="text-white">
+              API Key
+            </Label>
+            <div className="relative">
+              <Input
+                id="api-key"
+                type={showKey ? "text" : "password"}
+                value={apiKey}
+                onChange={(e) => handleApiKeyChange(e.target.value)}
+                placeholder="gsk_..."
+                className="bg-slate-800 border-slate-600 text-white pr-20"
+              />
+              <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
+                {isValid && <CheckCircle className="w-4 h-4 text-green-500" />}
                 <Button
                   type="button"
                   variant="ghost"
                   size="sm"
-                  className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
                   onClick={() => setShowKey(!showKey)}
+                  className="h-8 w-8 p-0 text-slate-400 hover:text-white"
                 >
-                  {showKey ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  {showKey ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </Button>
               </div>
             </div>
+          </div>
 
-            {hasStoredKey && (
-              <div className="p-3 bg-green-50 dark:bg-green-950 rounded-lg border border-green-200 dark:border-green-800">
-                <div className="flex items-center gap-2 mb-2">
-                  <Shield className="w-4 h-4 text-green-600" />
-                  <span className="text-sm font-medium text-green-800 dark:text-green-200">Current API Key</span>
-                </div>
-                <code className="text-xs text-green-700 dark:text-green-300 font-mono">{maskedKey}</code>
-              </div>
-            )}
+          {error && (
+            <Alert className="bg-red-900/20 border-red-500/30">
+              <AlertTriangle className="w-4 h-4" />
+              <AlertDescription className="text-red-300">{error}</AlertDescription>
+            </Alert>
+          )}
 
-            <div className="flex gap-2">
-              <Button onClick={handleSaveApiKey} className="flex-1">
-                {hasStoredKey ? "Update Key" : "Save Key"}
+          <div className="flex gap-2">
+            <Button onClick={saveApiKey} disabled={!apiKey || !isValid} className="bg-purple-600 hover:bg-purple-700">
+              {isSaved ? "Update Key" : "Save Key"}
+            </Button>
+            {isSaved && (
+              <Button
+                onClick={removeApiKey}
+                variant="outline"
+                className="border-red-500/30 text-red-300 hover:bg-red-900/20 bg-transparent"
+              >
+                <Trash2 className="w-4 h-4 mr-2" />
+                Remove
               </Button>
-              {hasStoredKey && (
-                <Button variant="destructive" onClick={handleRemoveApiKey}>
-                  Remove
-                </Button>
-              )}
-            </div>
+            )}
+          </div>
 
-            <div className="text-xs text-muted-foreground space-y-1">
-              <div className="flex items-center gap-1">
-                <Shield className="w-3 h-3" />
-                <span>Stored locally in your browser</span>
+          {isSaved && (
+            <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-3">
+              <div className="flex items-center gap-2">
+                <Badge variant="secondary" className="bg-green-900/30 text-green-300 border-green-500/30">
+                  <Shield className="w-3 h-3 mr-1" />
+                  Secured
+                </Badge>
+                <span className="text-sm text-slate-400">Key: {maskApiKey(apiKey)}</span>
               </div>
-              <div className="flex items-center gap-1">
-                <Key className="w-3 h-3" />
-                <span>Never transmitted to our servers</span>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </DialogContent>
-    </Dialog>
+            </motion.div>
+          )}
+        </CardContent>
+      </Card>
+
+      <Alert className="bg-blue-900/20 border-blue-500/30">
+        <Shield className="w-4 h-4" />
+        <AlertDescription className="text-blue-300">
+          <strong>Security Note:</strong> Your API key is stored locally in your browser and is only sent directly to
+          Groq's servers for analysis. We never see or store your API key on our servers.
+        </AlertDescription>
+      </Alert>
+
+      <Card className="bg-slate-900/50 border-purple-500/30">
+        <CardHeader>
+          <CardTitle className="text-white text-sm">How to get your Groq API Key</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-2 text-sm text-slate-300">
+          <ol className="list-decimal list-inside space-y-1">
+            <li>
+              Visit{" "}
+              <a
+                href="https://console.groq.com"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-purple-400 hover:text-purple-300"
+              >
+                console.groq.com
+              </a>
+            </li>
+            <li>Sign up or log in to your account</li>
+            <li>Navigate to the API Keys section</li>
+            <li>Create a new API key</li>
+            <li>Copy and paste it here</li>
+          </ol>
+        </CardContent>
+      </Card>
+    </div>
   )
 }

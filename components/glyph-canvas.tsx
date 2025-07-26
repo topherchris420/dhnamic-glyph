@@ -1,23 +1,15 @@
 "use client"
 
 import { useEffect, useRef } from "react"
+import { motion } from "framer-motion"
 
 interface GlyphCanvasProps {
-  analysis: {
-    emotional_valence: number
-    cognitive_complexity: number
-    energy_level: number
-    glyph_parameters: {
-      shape_complexity: number
-      color_hue: number
-      animation_speed: number
-      resonance_frequency: number
-    }
-  } | null
+  analysis: any
   isProcessing: boolean
+  settings?: any
 }
 
-export function GlyphCanvas({ analysis, isProcessing }: GlyphCanvasProps) {
+export function GlyphCanvas({ analysis, isProcessing, settings }: GlyphCanvasProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const animationRef = useRef<number>()
   const timeRef = useRef(0)
@@ -29,181 +21,203 @@ export function GlyphCanvas({ analysis, isProcessing }: GlyphCanvasProps) {
     const ctx = canvas.getContext("2d")
     if (!ctx) return
 
+    const resizeCanvas = () => {
+      const rect = canvas.getBoundingClientRect()
+      canvas.width = rect.width * window.devicePixelRatio
+      canvas.height = rect.height * window.devicePixelRatio
+      ctx.scale(window.devicePixelRatio, window.devicePixelRatio)
+    }
+
+    resizeCanvas()
+    window.addEventListener("resize", resizeCanvas)
+
     const animate = () => {
-      timeRef.current += 0.02
-      drawGlyph(ctx, canvas.width, canvas.height, timeRef.current)
+      timeRef.current += 0.016 // ~60fps
+
+      ctx.clearRect(0, 0, canvas.width, canvas.height)
+
+      const centerX = canvas.width / (2 * window.devicePixelRatio)
+      const centerY = canvas.height / (2 * window.devicePixelRatio)
+
+      if (isProcessing) {
+        drawProcessingAnimation(ctx, centerX, centerY, timeRef.current)
+      } else if (analysis) {
+        drawGlyph(ctx, centerX, centerY, analysis, timeRef.current, settings)
+      } else {
+        drawIdleState(ctx, centerX, centerY, timeRef.current)
+      }
+
       animationRef.current = requestAnimationFrame(animate)
     }
 
     animate()
 
     return () => {
+      window.removeEventListener("resize", resizeCanvas)
       if (animationRef.current) {
         cancelAnimationFrame(animationRef.current)
       }
     }
-  }, [analysis, isProcessing])
+  }, [analysis, isProcessing, settings])
 
-  const drawGlyph = (ctx: CanvasRenderingContext2D, width: number, height: number, time: number) => {
-    ctx.clearRect(0, 0, width, height)
+  const drawProcessingAnimation = (ctx: CanvasRenderingContext2D, x: number, y: number, time: number) => {
+    const radius = 40
+    const segments = 8
 
-    const centerX = width / 2
-    const centerY = height / 2
-    const baseRadius = Math.min(width, height) * 0.3
+    for (let i = 0; i < segments; i++) {
+      const angle = (i / segments) * Math.PI * 2 + time * 2
+      const segmentX = x + Math.cos(angle) * radius
+      const segmentY = y + Math.sin(angle) * radius
+      const opacity = (Math.sin(time * 3 + i) + 1) / 2
 
-    if (isProcessing) {
-      // Processing animation
-      drawProcessingGlyph(ctx, centerX, centerY, baseRadius, time)
-      return
+      ctx.beginPath()
+      ctx.arc(segmentX, segmentY, 4, 0, Math.PI * 2)
+      ctx.fillStyle = `rgba(139, 92, 246, ${opacity})`
+      ctx.fill()
     }
 
-    if (!analysis) {
-      // Default neutral glyph
-      drawDefaultGlyph(ctx, centerX, centerY, baseRadius)
-      return
-    }
+    // Central pulse
+    const pulseRadius = 20 + Math.sin(time * 4) * 10
+    ctx.beginPath()
+    ctx.arc(x, y, pulseRadius, 0, Math.PI * 2)
+    ctx.strokeStyle = `rgba(139, 92, 246, 0.5)`
+    ctx.lineWidth = 2
+    ctx.stroke()
+  }
 
-    // Extract parameters
+  const drawGlyph = (
+    ctx: CanvasRenderingContext2D,
+    x: number,
+    y: number,
+    analysis: any,
+    time: number,
+    settings: any,
+  ) => {
     const { emotional_valence, cognitive_complexity, energy_level, glyph_parameters } = analysis
-    const { shape_complexity, color_hue, animation_speed, resonance_frequency } = glyph_parameters
 
     // Color based on emotional valence
-    const hue = color_hue * 360
-    const saturation = Math.abs(emotional_valence) * 100
-    const lightness = 50 + energy_level * 30
+    const hue = emotional_valence > 0 ? 280 + emotional_valence * 80 : 0 + Math.abs(emotional_valence) * 60
+    const saturation = 70 + energy_level * 30
+    const lightness = 50 + cognitive_complexity * 30
 
-    ctx.strokeStyle = `hsl(${hue}, ${saturation}%, ${lightness}%)`
-    ctx.fillStyle = `hsla(${hue}, ${saturation}%, ${lightness}%, 0.3)`
-    ctx.lineWidth = 2 + energy_level * 3
-
-    // Dynamic radius based on energy
-    const dynamicRadius = baseRadius * (1 + Math.sin(time * animation_speed * 5) * energy_level * 0.3)
-
-    // Shape complexity determines number of points/vertices
-    const vertices = Math.floor(3 + shape_complexity * 12)
+    // Base shape complexity
+    const sides = Math.max(3, Math.floor(3 + cognitive_complexity * 9))
+    const baseRadius = 30 + cognitive_complexity * 40
+    const animationSpeed = (settings?.intensity || 1) * energy_level
 
     // Draw main glyph shape
+    ctx.save()
+    ctx.translate(x, y)
+    ctx.rotate(time * animationSpeed)
+
+    // Outer ring
     ctx.beginPath()
-    for (let i = 0; i <= vertices; i++) {
-      const angle = (i / vertices) * Math.PI * 2
-      const radiusVariation =
-        1 + Math.sin(angle * resonance_frequency + time * animation_speed * 3) * cognitive_complexity * 0.4
-      const x = centerX + Math.cos(angle) * dynamicRadius * radiusVariation
-      const y = centerY + Math.sin(angle) * dynamicRadius * radiusVariation
+    for (let i = 0; i <= sides; i++) {
+      const angle = (i / sides) * Math.PI * 2
+      const radius = baseRadius + Math.sin(time * 3 + i) * (energy_level * 10)
+      const pointX = Math.cos(angle) * radius
+      const pointY = Math.sin(angle) * radius
 
       if (i === 0) {
-        ctx.moveTo(x, y)
+        ctx.moveTo(pointX, pointY)
       } else {
-        ctx.lineTo(x, y)
+        ctx.lineTo(pointX, pointY)
       }
     }
     ctx.closePath()
-    ctx.fill()
+    ctx.strokeStyle = `hsl(${hue}, ${saturation}%, ${lightness}%)`
+    ctx.lineWidth = 2 + energy_level * 2
     ctx.stroke()
 
-    // Inner resonance patterns
-    if (cognitive_complexity > 0.5) {
-      drawInnerPatterns(ctx, centerX, centerY, dynamicRadius * 0.6, cognitive_complexity, time, animation_speed)
+    // Inner patterns based on archetypal resonance
+    const innerRadius = baseRadius * 0.6
+    ctx.beginPath()
+    for (let i = 0; i < sides * 2; i++) {
+      const angle = (i / (sides * 2)) * Math.PI * 2
+      const radius = innerRadius * (0.5 + Math.sin(time * 2 + i * 0.5) * 0.3)
+      const pointX = Math.cos(angle) * radius
+      const pointY = Math.sin(angle) * radius
+
+      if (i === 0) {
+        ctx.moveTo(pointX, pointY)
+      } else {
+        ctx.lineTo(pointX, pointY)
+      }
     }
+    ctx.closePath()
+    ctx.fillStyle = `hsla(${hue}, ${saturation}%, ${lightness}%, 0.3)`
+    ctx.fill()
 
     // Energy particles
-    if (energy_level > 0.3) {
-      drawEnergyParticles(ctx, centerX, centerY, dynamicRadius * 1.2, energy_level, time, animation_speed, hue)
+    if (settings?.particleCount > 0) {
+      const particleCount = Math.floor((settings.particleCount || 50) * energy_level)
+      for (let i = 0; i < particleCount; i++) {
+        const angle = (i / particleCount) * Math.PI * 2 + time
+        const distance = baseRadius + Math.sin(time * 2 + i) * 20
+        const particleX = Math.cos(angle) * distance
+        const particleY = Math.sin(angle) * distance
+        const size = 1 + Math.sin(time * 4 + i) * 2
+
+        ctx.beginPath()
+        ctx.arc(particleX, particleY, size, 0, Math.PI * 2)
+        ctx.fillStyle = `hsla(${hue + 30}, ${saturation}%, ${lightness + 20}%, 0.6)`
+        ctx.fill()
+      }
     }
-  }
 
-  const drawProcessingGlyph = (ctx: CanvasRenderingContext2D, x: number, y: number, radius: number, time: number) => {
-    ctx.strokeStyle = "#8b5cf6"
-    ctx.lineWidth = 3
+    ctx.restore()
 
-    // Spinning processing indicator
-    for (let i = 0; i < 8; i++) {
-      const angle = (i / 8) * Math.PI * 2 + time * 3
-      const innerRadius = radius * 0.5
-      const outerRadius = radius * (0.8 + Math.sin(time * 5 + i) * 0.2)
-
+    // Glow effect
+    if (settings?.glowEffect) {
+      ctx.save()
+      ctx.globalCompositeOperation = "screen"
+      ctx.shadowColor = `hsl(${hue}, ${saturation}%, ${lightness}%)`
+      ctx.shadowBlur = 20
       ctx.beginPath()
-      ctx.moveTo(x + Math.cos(angle) * innerRadius, y + Math.sin(angle) * innerRadius)
-      ctx.lineTo(x + Math.cos(angle) * outerRadius, y + Math.sin(angle) * outerRadius)
+      ctx.arc(x, y, baseRadius, 0, Math.PI * 2)
+      ctx.strokeStyle = `hsla(${hue}, ${saturation}%, ${lightness}%, 0.1)`
+      ctx.lineWidth = 4
       ctx.stroke()
+      ctx.restore()
     }
   }
 
-  const drawDefaultGlyph = (ctx: CanvasRenderingContext2D, x: number, y: number, radius: number) => {
-    ctx.strokeStyle = "#64748b"
-    ctx.fillStyle = "rgba(100, 116, 139, 0.2)"
-    ctx.lineWidth = 2
+  const drawIdleState = (ctx: CanvasRenderingContext2D, x: number, y: number, time: number) => {
+    // Subtle breathing animation
+    const radius = 30 + Math.sin(time * 0.5) * 5
+    const opacity = 0.3 + Math.sin(time * 0.8) * 0.2
 
     ctx.beginPath()
     ctx.arc(x, y, radius, 0, Math.PI * 2)
-    ctx.fill()
-    ctx.stroke()
-  }
-
-  const drawInnerPatterns = (
-    ctx: CanvasRenderingContext2D,
-    x: number,
-    y: number,
-    radius: number,
-    complexity: number,
-    time: number,
-    speed: number,
-  ) => {
-    ctx.strokeStyle = `rgba(255, 255, 255, ${complexity * 0.5})`
+    ctx.strokeStyle = `rgba(139, 92, 246, ${opacity})`
     ctx.lineWidth = 1
+    ctx.stroke()
 
-    const patterns = Math.floor(complexity * 6)
-    for (let i = 0; i < patterns; i++) {
-      const angle = (i / patterns) * Math.PI * 2 + time * speed
-      const patternRadius = radius * (0.3 + (i / patterns) * 0.4)
-
-      ctx.beginPath()
-      ctx.arc(
-        x + Math.cos(angle) * patternRadius * 0.5,
-        y + Math.sin(angle) * patternRadius * 0.5,
-        patternRadius * 0.3,
-        0,
-        Math.PI * 2,
-      )
-      ctx.stroke()
-    }
-  }
-
-  const drawEnergyParticles = (
-    ctx: CanvasRenderingContext2D,
-    x: number,
-    y: number,
-    radius: number,
-    energy: number,
-    time: number,
-    speed: number,
-    hue: number,
-  ) => {
-    const particles = Math.floor(energy * 20)
-
-    for (let i = 0; i < particles; i++) {
-      const angle = (i / particles) * Math.PI * 2 + time * speed * 2
-      const distance = radius + Math.sin(time * speed * 3 + i) * 20
-      const particleX = x + Math.cos(angle) * distance
-      const particleY = y + Math.sin(angle) * distance
-      const size = 1 + Math.sin(time * speed * 4 + i) * 2
-
-      ctx.fillStyle = `hsla(${hue}, 80%, 70%, ${energy * 0.8})`
-      ctx.beginPath()
-      ctx.arc(particleX, particleY, size, 0, Math.PI * 2)
-      ctx.fill()
-    }
+    // Center dot
+    ctx.beginPath()
+    ctx.arc(x, y, 3, 0, Math.PI * 2)
+    ctx.fillStyle = `rgba(139, 92, 246, ${opacity + 0.3})`
+    ctx.fill()
   }
 
   return (
-    <div className="relative">
-      <canvas
-        ref={canvasRef}
-        width={400}
-        height={400}
-        className="w-full h-auto bg-slate-900/50 rounded-lg border border-purple-500/20"
-      />
-      <div className="absolute bottom-2 right-2 text-xs text-slate-400">Real-time Glyph Rendering</div>
+    <div className="relative w-full h-64 bg-slate-900/30 rounded-lg border border-slate-700/50 overflow-hidden">
+      <canvas ref={canvasRef} className="w-full h-full" style={{ width: "100%", height: "100%" }} />
+
+      {!analysis && !isProcessing && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          className="absolute inset-0 flex items-center justify-center"
+        >
+          <div className="text-center space-y-2">
+            <div className="w-12 h-12 mx-auto bg-gradient-to-r from-purple-500/20 to-pink-500/20 rounded-full flex items-center justify-center">
+              <div className="w-6 h-6 bg-gradient-to-r from-purple-500 to-pink-500 rounded-full animate-pulse" />
+            </div>
+            <p className="text-slate-400 text-sm">Your glyph will appear here</p>
+          </div>
+        </motion.div>
+      )}
     </div>
   )
 }
