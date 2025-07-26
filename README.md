@@ -1,4 +1,4 @@
-# 🌟 Resonance Glyph Decoder
+# 🌟 Cognitive Signature Mapper (CSM)
 
 <div align="center">
 
@@ -18,9 +18,9 @@
 
 ---
 
-## ✨ What is Resonance Glyph Decoder?
+## ✨ Cognitive Signature Mapper (CSM)?
 
-The **Resonance Glyph Decoder** is a revolutionary AI-powered interface that transforms natural language, voice patterns, and symbolic inputs into dynamic visual glyphs representing cognitive-emotional states. Using open-source LLaMA models via Groq's lightning-fast inference, it creates real-time symbolic representations of your inner resonance.
+The **Cognitive Signature Mapper (CSM)** is a revolutionary AI-powered interface that transforms natural language, voice patterns, and symbolic inputs into dynamic visual glyphs representing cognitive-emotional states. Using open-source LLaMA models via Groq's lightning-fast inference, it creates real-time symbolic representations of your inner resonance.
 
 ### 🎯 Core Philosophy
 
